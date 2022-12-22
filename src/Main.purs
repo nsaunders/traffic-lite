@@ -8,7 +8,7 @@ import Affjax.RequestHeader (RequestHeader(..))
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Alt ((<|>))
 import Control.Monad.Error.Class (try)
-import Control.Monad.Except.Trans (ExceptT(..), except, mapExceptT, runExceptT)
+import Control.Monad.Except.Trans (ExceptT(..), except, runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
 import Data.Argonaut (Json, decodeJson, encodeJson, getField, parseJson, printJsonDecodeError, stringifyWithIndent, (.:))
 import Data.Argonaut.Decode.Decoders (decodeJArray, decodeJObject)
@@ -187,8 +187,8 @@ main = launchAff_ do
   result <-
     runExceptT do
       config <-
-        mapExceptT
-          (map $ lmap $ ConfigError <<< Error.message)
+        withExceptT
+          (ConfigError <<< Error.message)
           $ hoist liftEffect
           $ (\path token repo -> { path, token, repo })
               <$> getInput { name: "path", options: pure { required: true } }
