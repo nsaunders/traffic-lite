@@ -66,7 +66,7 @@ fetchCounts metricType { token, repo } =
       except
         $ bimap
             (TypeError <<< printJsonDecodeError)
-            (takeEnd 14 <<< sortWith _.timestamp)
+            (takeEnd 13 <<< sortWith _.timestamp)
         $ decodeJson
             =<< flip getField metricType
             =<< decodeJObject body
