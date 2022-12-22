@@ -39,6 +39,13 @@ data AppError
   = ConfigError String
   | FetchError String
   | TypeError String
+  | SaveError String
+
+printAppError :: AppError -> String
+printAppError (ConfigError details) = "Configuration: " <> details
+printAppError (FetchError details) = "Data fetching: " <> details
+printAppError (TypeError details) = "Type: " <> details
+printAppError (SaveError details) = "Saving data: " <> details
 
 type TimestampRep r = (timestamp :: String | r)
 
@@ -200,13 +207,6 @@ main = launchAff_ do
       saveData (encodeJson updated) config
   liftEffect case result of
     Left err ->
-      Actions.error
-        case err of
-          ConfigError desc ->
-            "Config error: " <> desc
-          FetchError desc ->
-            "Data fetching error: " <> desc
-          TypeError desc ->
-            "Type error: " <> desc
+      Actions.error $ printAppError err
     Right _ ->
-      Actions.info "Completed successfully."
+      Actions.info "Traffic update successful"
