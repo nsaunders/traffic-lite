@@ -10,6 +10,8 @@ import Control.Alt ((<|>))
 import Control.Monad.Error.Class (class MonadThrow, throwError, try)
 import Control.Monad.Except.Trans (runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
+import Control.Monad.Reader.Class (class MonadAsk, ask)
+import Control.Monad.Reader.Trans (runReaderT)
 import Data.Argonaut
   ( Json
   , decodeJson
@@ -55,6 +57,23 @@ printAppError (FetchError details) = "Data fetching: " <> details
 printAppError (TypeError details) = "Type: " <> details
 printAppError (SaveError details) = "Saving data: " <> details
 
+getInputs
+  :: forall m
+   . MonadEffect m
+  => MonadThrow AppError m
+  => m { path :: FilePath, token :: String, repo :: String }
+getInputs =
+  either throwError pure =<<
+    ( runExceptT
+        $ withExceptT
+            (ConfigError <<< Error.message)
+        $ hoist liftEffect
+        $ (\path token repo -> { path, token, repo })
+            <$> getInput { name: "path", options: pure { required: true } }
+            <*> getInput { name: "token", options: pure { required: true } }
+            <*> getInput { name: "repo", options: pure { required: true } }
+    )
+
 type TimestampRep r = (timestamp :: String | r)
 
 type CountRep r = (count :: Int, uniques :: Int | r)
@@ -62,11 +81,12 @@ type CountRep r = (count :: Int, uniques :: Int | r)
 fetchCounts
   :: forall m r
    . MonadAff m
+  => MonadAsk { repo :: String, token :: String | r } m
   => MonadThrow AppError m
   => String
-  -> { repo :: String, token :: String | r }
   -> m (Array { | TimestampRep + CountRep + () })
-fetchCounts metricType { token, repo } =
+fetchCounts metricType = do
+  { token, repo } <- ask
   let
     url = "https://api.github.com/repos/" <> repo <> "/traffic/" <> metricType
     headers =
@@ -76,40 +96,38 @@ fetchCounts metricType { token, repo } =
       ]
     config = defaultRequest
       { url = url, headers = headers, responseFormat = ResponseFormat.json }
-  in
-    do
-      { body } <- liftAff (request config) >>=
-        either (throwError <<< FetchError <<< Affjax.printError) pure
-      either
-        (throwError <<< TypeError <<< printJsonDecodeError)
-        (pure <<< takeEnd 13 <<< sortWith _.timestamp)
-        $ decodeJson
-            =<< flip getField metricType
-            =<< decodeJObject body
+  { body } <-
+    either (throwError <<< FetchError <<< Affjax.printError) pure
+      =<< liftAff (request config)
+  either
+    (throwError <<< TypeError <<< printJsonDecodeError)
+    (pure <<< takeEnd 13 <<< sortWith _.timestamp)
+    $ decodeJson =<< flip getField metricType =<< decodeJObject body
 
 fetchClones
   :: forall m r
    . MonadAff m
+  => MonadAsk { repo :: String, token :: String | r } m
   => MonadThrow AppError m
-  => { repo :: String, token :: String | r }
-  -> m (Array { | TimestampRep + CountRep + () })
+  => m (Array { | TimestampRep + CountRep + () })
 fetchClones = fetchCounts "clones"
 
 fetchViews
   :: forall m r
    . MonadAff m
+  => MonadAsk { repo :: String, token :: String | r } m
   => MonadThrow AppError m
-  => { repo :: String, token :: String | r }
-  -> m (Array { | TimestampRep + CountRep + () })
+  => m (Array { | TimestampRep + CountRep + () })
 fetchViews = fetchCounts "views"
 
 readSavedData
-  :: forall r m
+  :: forall m r
    . MonadAff m
+  => MonadAsk { path :: FilePath | r } m
   => MonadThrow AppError m
-  => { path :: FilePath | r }
-  -> m Json
-readSavedData { path } =
+  => m Json
+readSavedData = do
+  { path } <- ask
   liftAff (fromRight "[]" <$> try (readTextFile UTF8 path)) >>=
     either (throwError <<< TypeError <<< printJsonDecodeError) pure <<<
       parseJson
@@ -197,11 +215,12 @@ buildData source =
 saveData
   :: forall m r
    . MonadAff m
+  => MonadAsk { path :: FilePath | r } m
   => MonadThrow AppError m
   => Json
-  -> { path :: FilePath | r }
   -> m Unit
-saveData json { path } = do
+saveData json = do
+  { path } <- ask
   let dir = dirname path
   liftAff (try $ mkdir' dir { mode: mkPerms all all read, recursive: true })
     >>= either
@@ -222,26 +241,20 @@ main :: Effect Unit
 main = launchAff_ do
   _ <- Dotenv.loadFile
   result <-
-    runExceptT do
-      config <-
-        withExceptT
-          (ConfigError <<< Error.message)
-          $ hoist liftEffect
-          $ (\path token repo -> { path, token, repo })
-              <$> getInput { name: "path", options: pure { required: true } }
-              <*> getInput { name: "token", options: pure { required: true } }
-              <*> getInput { name: "repo", options: pure { required: true } }
-      latestClones <- fetchClones config
-      latestViews <- fetchViews config
-      saved <- readSavedData config
-      savedClones <- getClones saved
-      savedViews <- getViews saved
-      let
-        updated = buildData
-          { clones: union latestClones savedClones
-          , views: union latestViews savedViews
-          }
-      saveData (encodeJson updated) config
+    runExceptT $
+      getInputs >>=
+        runReaderT do
+          latestClones <- fetchClones
+          latestViews <- fetchViews
+          saved <- readSavedData
+          savedClones <- getClones saved
+          savedViews <- getViews saved
+          let
+            updated = buildData
+              { clones: union latestClones savedClones
+              , views: union latestViews savedViews
+              }
+          saveData (encodeJson updated)
   liftEffect case result of
     Left err ->
       Actions.error $ printAppError err
