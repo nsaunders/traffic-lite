@@ -2,10 +2,6 @@ module Main where
 
 import Prelude
 
-import Affjax.Node (defaultRequest, request)
-import Affjax.Node as Affjax
-import Affjax.RequestHeader (RequestHeader(..))
-import Affjax.ResponseFormat as ResponseFormat
 import Control.Monad.Error.Class (class MonadThrow, throwError, try)
 import Control.Monad.Except.Trans (runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
@@ -13,19 +9,16 @@ import Control.Monad.Reader.Class (class MonadAsk, ask)
 import Control.Monad.Reader.Trans (runReaderT)
 import Data.Argonaut
   ( Json
-  , decodeJson
   , encodeJson
-  , getField
   , parseJson
   , printJsonDecodeError
   , stringifyWithIndent
   , (.:)
   )
 import Data.Argonaut.Decode.Decoders (decodeJArray, decodeJObject)
-import Data.Array (catMaybes, sortWith, takeEnd)
+import Data.Array (catMaybes)
 import Data.Either (Either(..), either, fromRight)
 import Data.Maybe (Maybe)
-import Data.MediaType (MediaType(..))
 import Data.Traversable (traverse)
 import Dotenv as Dotenv
 import Effect (Effect)
@@ -47,6 +40,7 @@ import TrafficLite.Data.Metric
   , mergeDataSets
   , unionByTimestamp
   )
+import TrafficLite.Effect.DataFetching (fetchClones, fetchViews)
 import Type.Row (type (+))
 
 getInputs
@@ -65,48 +59,6 @@ getInputs =
             <*> getInput { name: "token", options: pure { required: true } }
             <*> getInput { name: "repo", options: pure { required: true } }
     )
-
-fetchCounts
-  :: forall m r
-   . MonadAff m
-  => MonadAsk { repo :: String, token :: String | r } m
-  => MonadThrow TrafficLite.Error m
-  => String
-  -> m (Array { | TimestampRep + CountRep + () })
-fetchCounts metricType = do
-  { token, repo } <- ask
-  let
-    url = "https://api.github.com/repos/" <> repo <> "/traffic/" <> metricType
-    headers =
-      [ Accept $ MediaType "application/vnd.github+json"
-      , RequestHeader "Authorization" ("Bearer " <> token)
-      , RequestHeader "X-GitHub-Api-Version" "2022-11-28"
-      ]
-    config = defaultRequest
-      { url = url, headers = headers, responseFormat = ResponseFormat.json }
-  { body } <-
-    either (throwError <<< FetchError <<< Affjax.printError) pure
-      =<< liftAff (request config)
-  either
-    (throwError <<< TypeError <<< printJsonDecodeError)
-    (pure <<< takeEnd 13 <<< sortWith _.timestamp)
-    $ decodeJson =<< flip getField metricType =<< decodeJObject body
-
-fetchClones
-  :: forall m r
-   . MonadAff m
-  => MonadAsk { repo :: String, token :: String | r } m
-  => MonadThrow TrafficLite.Error m
-  => m (Array { | TimestampRep + CountRep + () })
-fetchClones = fetchCounts "clones"
-
-fetchViews
-  :: forall m r
-   . MonadAff m
-  => MonadAsk { repo :: String, token :: String | r } m
-  => MonadThrow TrafficLite.Error m
-  => m (Array { | TimestampRep + CountRep + () })
-fetchViews = fetchCounts "views"
 
 readSavedData
   :: forall m r
