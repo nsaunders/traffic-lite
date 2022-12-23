@@ -5,11 +5,13 @@ import Prelude
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Control.Monad.Except.Trans (runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
+import Control.Monad.Reader.Class (class MonadAsk)
 import Control.Monad.Reader.Trans (runReaderT)
 import Data.Either (Either(..), either)
 import Dotenv as Dotenv
 import Effect (Effect)
 import Effect.Aff (launchAff_)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception as Error
 import GitHub.Actions.Core (getInput)
@@ -38,22 +40,27 @@ getInputs =
             <*> getInput { name: "repo", options: pure { required: true } }
     )
 
+update
+  :: forall m r
+   . MonadAff m
+  => MonadAsk { path :: FilePath, repo :: String, token :: String | r } m
+  => MonadThrow TrafficLite.Error m
+  => m Unit
+update = do
+  latestClones <- fetchClones
+  latestViews <- fetchViews
+  saved <- splitDataSet <$> Store.get
+  let
+    updated = mergeDataSets
+      { clones: unionByTimestamp latestClones saved.clones
+      , views: unionByTimestamp latestViews saved.views
+      }
+  Store.put updated
+
 main :: Effect Unit
 main = launchAff_ do
   _ <- Dotenv.loadFile
-  result <-
-    runExceptT $
-      getInputs >>=
-        runReaderT do
-          latestClones <- fetchClones
-          latestViews <- fetchViews
-          saved <- splitDataSet <$> Store.get
-          let
-            updated = mergeDataSets
-              { clones: unionByTimestamp latestClones saved.clones
-              , views: unionByTimestamp latestViews saved.views
-              }
-          Store.put updated
+  result <- runExceptT $ getInputs >>= runReaderT update
   liftEffect case result of
     Left error ->
       Actions.error $ TrafficLite.printError error
