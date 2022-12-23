@@ -8,12 +8,20 @@ import Affjax.RequestHeader (RequestHeader(..))
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Alt ((<|>))
 import Control.Monad.Error.Class (class MonadThrow, throwError, try)
-import Control.Monad.Except.Trans (ExceptT(..), except, runExceptT, withExceptT)
+import Control.Monad.Except.Trans (runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
-import Data.Argonaut (Json, decodeJson, encodeJson, getField, parseJson, printJsonDecodeError, stringifyWithIndent, (.:))
+import Data.Argonaut
+  ( Json
+  , decodeJson
+  , encodeJson
+  , getField
+  , parseJson
+  , printJsonDecodeError
+  , stringifyWithIndent
+  , (.:)
+  )
 import Data.Argonaut.Decode.Decoders (decodeJArray, decodeJObject)
 import Data.Array (catMaybes, sortWith, takeEnd, unionBy)
-import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either(..), either, fromRight)
 import Data.Foldable (foldr)
 import Data.Map as Map
@@ -54,9 +62,10 @@ type CountRep r = (count :: Int, uniques :: Int | r)
 fetchCounts
   :: forall m r
    . MonadAff m
+  => MonadThrow AppError m
   => String
   -> { repo :: String, token :: String | r }
-  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
+  -> m (Array { | TimestampRep + CountRep + () })
 fetchCounts metricType { token, repo } =
   let
     url = "https://api.github.com/repos/" <> repo <> "/traffic/" <> metricType
@@ -69,13 +78,11 @@ fetchCounts metricType { token, repo } =
       { url = url, headers = headers, responseFormat = ResponseFormat.json }
   in
     do
-      { body } <-
-        ExceptT $ lmap (FetchError <<< Affjax.printError) <$>
-          (liftAff $ request config)
-      except
-        $ bimap
-            (TypeError <<< printJsonDecodeError)
-            (takeEnd 13 <<< sortWith _.timestamp)
+      { body } <- liftAff (request config) >>=
+        either (throwError <<< FetchError <<< Affjax.printError) pure
+      either
+        (throwError <<< TypeError <<< printJsonDecodeError)
+        (pure <<< takeEnd 13 <<< sortWith _.timestamp)
         $ decodeJson
             =<< flip getField metricType
             =<< decodeJObject body
@@ -83,25 +90,29 @@ fetchCounts metricType { token, repo } =
 fetchClones
   :: forall m r
    . MonadAff m
+  => MonadThrow AppError m
   => { repo :: String, token :: String | r }
-  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
+  -> m (Array { | TimestampRep + CountRep + () })
 fetchClones = fetchCounts "clones"
 
 fetchViews
   :: forall m r
    . MonadAff m
+  => MonadThrow AppError m
   => { repo :: String, token :: String | r }
-  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
+  -> m (Array { | TimestampRep + CountRep + () })
 fetchViews = fetchCounts "views"
 
 readSavedData
   :: forall r m
    . MonadAff m
+  => MonadThrow AppError m
   => { path :: FilePath | r }
-  -> ExceptT AppError m Json
-readSavedData { path } = do
-  contents <- liftAff $ fromRight "[]" <$> try (readTextFile UTF8 path)
-  except $ lmap (TypeError <<< printJsonDecodeError) $ parseJson contents
+  -> m Json
+readSavedData { path } =
+  liftAff (fromRight "[]" <$> try (readTextFile UTF8 path)) >>=
+    either (throwError <<< TypeError <<< printJsonDecodeError) pure <<<
+      parseJson
 
 getCounts
   :: forall m
@@ -111,7 +122,8 @@ getCounts
   -> Json
   -> m (Array { | TimestampRep + CountRep + () })
 getCounts metricType json = do
-  arr <- either (throwError <<< TypeError <<< printJsonDecodeError) pure $ decodeJArray json
+  arr <- either (throwError <<< TypeError <<< printJsonDecodeError) pure $
+    decodeJArray json
   items <- traverse decodeItem arr
   pure $ catMaybes items
   where
