@@ -1,4 +1,4 @@
-module TrafficLite.Effect.DataFetching where
+module TrafficLite.Effect.DataFetching (fetchClones, fetchViews) where
 
 import Prelude
 
