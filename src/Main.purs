@@ -74,8 +74,7 @@ readSavedData = do
 
 getCounts
   :: forall m
-   . MonadEffect m
-  => MonadThrow TrafficLite.Error m
+   . MonadThrow TrafficLite.Error m
   => String
   -> Json
   -> m (Array { | TimestampRep + CountRep + () })
@@ -96,16 +95,14 @@ getCounts metricType json = do
 
 getClones
   :: forall m
-   . MonadEffect m
-  => MonadThrow TrafficLite.Error m
+   . MonadThrow TrafficLite.Error m
   => Json
   -> m (Array { | TimestampRep + CountRep + () })
 getClones = getCounts "clones"
 
 getViews
   :: forall m
-   . MonadEffect m
-  => MonadThrow TrafficLite.Error m
+   . MonadThrow TrafficLite.Error m
   => Json
   -> m (Array { | TimestampRep + CountRep + () })
 getViews = getCounts "views"
