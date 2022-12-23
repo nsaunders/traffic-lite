@@ -1,16 +1,10 @@
-module TrafficLite.Effect.Store (get, put) where
+module TrafficLite.Effect.Store (class MonadStore, get, put) where
 
 import Prelude
 
 import Control.Monad.Error.Class (class MonadThrow, throwError, try)
 import Control.Monad.Reader.Class (class MonadAsk, ask)
-import Data.Argonaut
-  ( decodeJson
-  , encodeJson
-  , parseJson
-  , printJsonDecodeError
-  , stringifyWithIndent
-  )
+import Data.Argonaut (decodeJson, encodeJson, parseJson, printJsonDecodeError, stringifyWithIndent)
 import Data.Either (either, fromRight)
 import Data.Maybe (Maybe)
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -19,12 +13,29 @@ import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (mkdir', readTextFile, writeTextFile)
 import Node.FS.Perms (all, mkPerms, read)
 import Node.Path (FilePath, dirname)
+import TrafficLite.Control.Monad.UpdateM (UpdateM)
 import TrafficLite.Data.Error (Error(..))
 import TrafficLite.Data.Error as TrafficLite
 import TrafficLite.Data.Metric (CountRep, TimestampRep)
 import Type.Row (type (+))
 
-get
+class MonadStore (m :: Type -> Type) where
+  get :: m
+           ( Array
+               { clones :: Maybe { | CountRep + () }
+               , views :: Maybe { | CountRep + () }
+               | TimestampRep + ()
+               }
+           )
+  put ::
+        Array
+             { clones :: Maybe { | CountRep + () }
+             , views :: Maybe { | CountRep + () }
+             | TimestampRep + ()
+             }
+        -> m Unit
+
+getImpl
   :: forall m r
    . MonadAff m
   => MonadAsk { path :: FilePath | r } m
@@ -36,13 +47,13 @@ get
            | TimestampRep + ()
            }
        )
-get = do
+getImpl = do
   { path } <- ask
   liftAff (fromRight "[]" <$> try (readTextFile UTF8 path)) >>=
     either (throwError <<< TypeError <<< printJsonDecodeError) pure <<<
       (decodeJson <=< parseJson)
 
-put
+putImpl
   :: forall m r
    . MonadAff m
   => MonadAsk { path :: FilePath | r } m
@@ -53,7 +64,7 @@ put
        | TimestampRep + ()
        }
   -> m Unit
-put metrics = do
+putImpl metrics = do
   { path } <- ask
   let dir = dirname path
   liftAff (try $ mkdir' dir { mode: mkPerms all all read, recursive: true })
@@ -71,3 +82,7 @@ put metrics = do
           <> Error.message e
       )
       pure
+
+instance MonadStore UpdateM where
+  get = getImpl
+  put = putImpl

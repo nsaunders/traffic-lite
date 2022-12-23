@@ -9,6 +9,7 @@ import Node.Path (FilePath)
 import TrafficLite.Data.Error as TrafficLite
 import TrafficLite.Data.Metric (mergeDataSets, splitDataSet, unionByTimestamp)
 import TrafficLite.Effect.RemoteData (class MonadRemoteData, fetchClones, fetchViews)
+import TrafficLite.Effect.Store (class MonadStore)
 import TrafficLite.Effect.Store as Store
 
 update
@@ -16,6 +17,7 @@ update
    . MonadAff m
   => MonadAsk { path :: FilePath, repo :: String, token :: String | r } m
   => MonadRemoteData m
+  => MonadStore m
   => MonadThrow TrafficLite.Error m
   => m Unit
 update = do
