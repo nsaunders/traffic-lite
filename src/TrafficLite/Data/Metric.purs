@@ -3,7 +3,7 @@ module TrafficLite.Data.Metric where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Array (unionBy)
+import Data.Array (catMaybes, unionBy)
 import Data.Foldable (foldr)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -21,6 +21,27 @@ unionByTimestamp
   -> Array { timestamp :: t | r }
   -> Array { timestamp :: t | r }
 unionByTimestamp = unionBy \a b -> a.timestamp == b.timestamp
+
+splitDataSet
+  :: forall r
+   . Array
+       { clones :: Maybe { | CountRep + () }
+       , views :: Maybe { | CountRep + () }
+       | TimestampRep + r
+       }
+  -> { clones :: Array { | TimestampRep + CountRep + () }
+     , views :: Array { | TimestampRep + CountRep + () }
+     }
+splitDataSet items =
+  { clones: catMaybes $
+      ( \{ timestamp, clones } ->
+          (\{ count, uniques } -> { timestamp, count, uniques }) <$> clones
+      ) <$> items
+  , views: catMaybes $
+      ( \{ timestamp, views } ->
+          (\{ count, uniques } -> { timestamp, count, uniques }) <$> views
+      ) <$> items
+  }
 
 mergeDataSets
   :: forall r
