@@ -7,19 +7,10 @@ import Affjax.Node as Affjax
 import Affjax.RequestHeader (RequestHeader(..))
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Alt ((<|>))
-import Control.Monad.Error.Class (throwError, try)
+import Control.Monad.Error.Class (class MonadThrow, throwError, try)
 import Control.Monad.Except.Trans (ExceptT(..), except, runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
-import Data.Argonaut
-  ( Json
-  , decodeJson
-  , encodeJson
-  , getField
-  , parseJson
-  , printJsonDecodeError
-  , stringifyWithIndent
-  , (.:)
-  )
+import Data.Argonaut (Json, decodeJson, encodeJson, getField, parseJson, printJsonDecodeError, stringifyWithIndent, (.:))
 import Data.Argonaut.Decode.Decoders (decodeJArray, decodeJObject)
 import Data.Array (catMaybes, sortWith, takeEnd, unionBy)
 import Data.Bifunctor (bimap, lmap)
@@ -115,18 +106,19 @@ readSavedData { path } = do
 getCounts
   :: forall m
    . MonadEffect m
+  => MonadThrow AppError m
   => String
   -> Json
-  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
+  -> m (Array { | TimestampRep + CountRep + () })
 getCounts metricType json = do
-  arr <- except $ lmap (TypeError <<< printJsonDecodeError) $ decodeJArray json
+  arr <- either (throwError <<< TypeError <<< printJsonDecodeError) pure $ decodeJArray json
   items <- traverse decodeItem arr
   pure $ catMaybes items
   where
   decodeItem
-    :: Json -> ExceptT AppError m (Maybe { | TimestampRep + CountRep + () })
+    :: Json -> m (Maybe { | TimestampRep + CountRep + () })
   decodeItem itemJson = do
-    except $ lmap (TypeError <<< printJsonDecodeError) do
+    either (throwError <<< TypeError <<< printJsonDecodeError) pure do
       obj <- decodeJObject itemJson
       timestamp <- obj .: "timestamp"
       md :: Maybe { count :: Int, uniques :: Int } <- obj .: metricType
@@ -135,15 +127,17 @@ getCounts metricType json = do
 getClones
   :: forall m
    . MonadEffect m
+  => MonadThrow AppError m
   => Json
-  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
+  -> m (Array { | TimestampRep + CountRep + () })
 getClones = getCounts "clones"
 
 getViews
   :: forall m
    . MonadEffect m
+  => MonadThrow AppError m
   => Json
-  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
+  -> m (Array { | TimestampRep + CountRep + () })
 getViews = getCounts "views"
 
 union
@@ -191,9 +185,10 @@ buildData source =
 saveData
   :: forall m r
    . MonadAff m
+  => MonadThrow AppError m
   => Json
   -> { path :: FilePath | r }
-  -> ExceptT AppError m Unit
+  -> m Unit
 saveData json { path } = do
   let dir = dirname path
   liftAff (try $ mkdir' dir { mode: mkPerms all all read, recursive: true })
