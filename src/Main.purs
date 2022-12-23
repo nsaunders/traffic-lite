@@ -7,14 +7,23 @@ import Affjax.Node as Affjax
 import Affjax.RequestHeader (RequestHeader(..))
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Alt ((<|>))
-import Control.Monad.Error.Class (try)
+import Control.Monad.Error.Class (throwError, try)
 import Control.Monad.Except.Trans (ExceptT(..), except, runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
-import Data.Argonaut (Json, decodeJson, encodeJson, getField, parseJson, printJsonDecodeError, stringifyWithIndent, (.:))
+import Data.Argonaut
+  ( Json
+  , decodeJson
+  , encodeJson
+  , getField
+  , parseJson
+  , printJsonDecodeError
+  , stringifyWithIndent
+  , (.:)
+  )
 import Data.Argonaut.Decode.Decoders (decodeJArray, decodeJObject)
 import Data.Array (catMaybes, sortWith, takeEnd, unionBy)
 import Data.Bifunctor (bimap, lmap)
-import Data.Either (Either(..), fromRight)
+import Data.Either (Either(..), either, fromRight)
 import Data.Foldable (foldr)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -23,7 +32,7 @@ import Data.Traversable (traverse)
 import Data.Tuple.Nested ((/\))
 import Dotenv as Dotenv
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff_)
+import Effect.Aff (launchAff_)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception as Error
@@ -52,10 +61,11 @@ type TimestampRep r = (timestamp :: String | r)
 type CountRep r = (count :: Int, uniques :: Int | r)
 
 fetchCounts
-  :: forall r
-   . String
+  :: forall m r
+   . MonadAff m
+  => String
   -> { repo :: String, token :: String | r }
-  -> ExceptT AppError Aff (Array { | TimestampRep + CountRep + () })
+  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
 fetchCounts metricType { token, repo } =
   let
     url = "https://api.github.com/repos/" <> repo <> "/traffic/" <> metricType
@@ -69,7 +79,8 @@ fetchCounts metricType { token, repo } =
   in
     do
       { body } <-
-        ExceptT $ lmap (FetchError <<< Affjax.printError) <$> request config
+        ExceptT $ lmap (FetchError <<< Affjax.printError) <$>
+          (liftAff $ request config)
       except
         $ bimap
             (TypeError <<< printJsonDecodeError)
@@ -79,15 +90,17 @@ fetchCounts metricType { token, repo } =
             =<< decodeJObject body
 
 fetchClones
-  :: forall r
-   . { repo :: String, token :: String | r }
-  -> ExceptT AppError Aff (Array { | TimestampRep + CountRep + () })
+  :: forall m r
+   . MonadAff m
+  => { repo :: String, token :: String | r }
+  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
 fetchClones = fetchCounts "clones"
 
 fetchViews
-  :: forall r
-   . { repo :: String, token :: String | r }
-  -> ExceptT AppError Aff (Array { | TimestampRep + CountRep + () })
+  :: forall m r
+   . MonadAff m
+  => { repo :: String, token :: String | r }
+  -> ExceptT AppError m (Array { | TimestampRep + CountRep + () })
 fetchViews = fetchCounts "views"
 
 readSavedData
@@ -176,10 +189,27 @@ buildData source =
     )
 
 saveData
-  :: forall r. Json -> { path :: FilePath | r } -> ExceptT AppError Aff Unit
-saveData json { path } = liftAff do
-  mkdir' (dirname path) { mode: mkPerms all all read, recursive: true }
-  writeTextFile UTF8 path $ stringifyWithIndent 2 json
+  :: forall m r
+   . MonadAff m
+  => Json
+  -> { path :: FilePath | r }
+  -> ExceptT AppError m Unit
+saveData json { path } = do
+  let dir = dirname path
+  liftAff (try $ mkdir' dir { mode: mkPerms all all read, recursive: true })
+    >>= either
+      ( \e -> throwError $ SaveError $ "Creating directory \"" <> dir
+          <> "\" failed: "
+          <> Error.message e
+      )
+      pure
+  liftAff (try $ writeTextFile UTF8 path $ stringifyWithIndent 2 json)
+    >>= either
+      ( \e -> throwError $ SaveError $ "Writing file \"" <> path
+          <> "\" failed: "
+          <> Error.message e
+      )
+      pure
 
 main :: Effect Unit
 main = launchAff_ do
