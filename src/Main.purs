@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Except.Trans (runExceptT)
 import Control.Monad.Reader.Trans (runReaderT)
-import Data.Either (Either(..))
+import Data.Either (either)
 import Dotenv as Dotenv
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -17,9 +17,7 @@ import TrafficLite.Update (update)
 main :: Effect Unit
 main = launchAff_ do
   _ <- Dotenv.loadFile
-  result <- runExceptT $ getEnvironment >>= runReaderT update
-  liftEffect case result of
-    Left error ->
-      Actions.error $ TrafficLite.printError error
-    Right _ ->
-      Actions.info "Traffic update successful"
+  runExceptT (getEnvironment >>= runReaderT update) >>=
+    either
+      (liftEffect <<< Actions.error <<< TrafficLite.printError)
+      (const $ liftEffect $ Actions.info "Traffic update successful")
