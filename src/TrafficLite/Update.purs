@@ -8,7 +8,7 @@ import Effect.Aff.Class (class MonadAff)
 import Node.Path (FilePath)
 import TrafficLite.Data.Error as TrafficLite
 import TrafficLite.Data.Metric (mergeDataSets, splitDataSet, unionByTimestamp)
-import TrafficLite.Effect.DataFetching (fetchClones, fetchViews)
+import TrafficLite.Effect.RemoteData (fetchClones, fetchViews)
 import TrafficLite.Effect.Store as Store
 
 update
