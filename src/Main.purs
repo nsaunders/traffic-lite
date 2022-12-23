@@ -5,13 +5,11 @@ import Prelude
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Control.Monad.Except.Trans (runExceptT, withExceptT)
 import Control.Monad.Morph (hoist)
-import Control.Monad.Reader.Class (class MonadAsk)
 import Control.Monad.Reader.Trans (runReaderT)
 import Data.Either (Either(..), either)
 import Dotenv as Dotenv
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception as Error
 import GitHub.Actions.Core (getInput)
@@ -19,9 +17,7 @@ import GitHub.Actions.Core as Actions
 import Node.Path (FilePath)
 import TrafficLite.Data.Error (Error(..))
 import TrafficLite.Data.Error as TrafficLite
-import TrafficLite.Data.Metric (mergeDataSets, splitDataSet, unionByTimestamp)
-import TrafficLite.Effect.DataFetching (fetchClones, fetchViews)
-import TrafficLite.Effect.Store as Store
+import TrafficLite.Update (update)
 
 getInputs
   :: forall m
@@ -39,23 +35,6 @@ getInputs =
             <*> getInput { name: "token", options: pure { required: true } }
             <*> getInput { name: "repo", options: pure { required: true } }
     )
-
-update
-  :: forall m r
-   . MonadAff m
-  => MonadAsk { path :: FilePath, repo :: String, token :: String | r } m
-  => MonadThrow TrafficLite.Error m
-  => m Unit
-update = do
-  latestClones <- fetchClones
-  latestViews <- fetchViews
-  saved <- splitDataSet <$> Store.get
-  let
-    updated = mergeDataSets
-      { clones: unionByTimestamp latestClones saved.clones
-      , views: unionByTimestamp latestViews saved.views
-      }
-  Store.put updated
 
 main :: Effect Unit
 main = launchAff_ do
