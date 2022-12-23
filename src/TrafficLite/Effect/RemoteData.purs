@@ -1,4 +1,4 @@
-module TrafficLite.Effect.RemoteData (fetchClones, fetchViews) where
+module TrafficLite.Effect.RemoteData (class MonadRemoteData, fetchClones, fetchViews) where
 
 import Prelude
 
@@ -13,10 +13,15 @@ import Data.Array (sortWith, takeEnd)
 import Data.Either (either)
 import Data.MediaType (MediaType(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
+import TrafficLite.Control.Monad.UpdateM (UpdateM)
 import TrafficLite.Data.Error (Error(..))
 import TrafficLite.Data.Error as TrafficLite
 import TrafficLite.Data.Metric (CountRep, TimestampRep)
 import Type.Row (type (+))
+
+class MonadRemoteData (m :: Type -> Type) where
+  fetchClones :: m (Array { | TimestampRep + CountRep + () })
+  fetchViews :: m (Array { | TimestampRep + CountRep + () })
 
 fetchCounts
   :: forall m r
@@ -45,18 +50,6 @@ fetchCounts metricType = do
     (pure <<< takeEnd 13 <<< sortWith _.timestamp)
     $ decodeJson =<< flip getField metricType =<< decodeJson body
 
-fetchClones
-  :: forall m r
-   . MonadAff m
-  => MonadAsk { repo :: String, token :: String | r } m
-  => MonadThrow TrafficLite.Error m
-  => m (Array { | TimestampRep + CountRep + () })
-fetchClones = fetchCounts "clones"
-
-fetchViews
-  :: forall m r
-   . MonadAff m
-  => MonadAsk { repo :: String, token :: String | r } m
-  => MonadThrow TrafficLite.Error m
-  => m (Array { | TimestampRep + CountRep + () })
-fetchViews = fetchCounts "views"
+instance MonadRemoteData UpdateM where
+  fetchClones = fetchCounts "clones"
+  fetchViews = fetchCounts "views"
