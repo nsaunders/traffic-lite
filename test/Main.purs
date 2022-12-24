@@ -55,7 +55,9 @@ execTestM initialState remoteData (TestM m) =
 
 main :: Effect Unit
 main = launchAff_ $ runSpec [ consoleReporter ] do
+
   describe "update" do
+
     describe "when store is empty" do
       let storeData = []
       it "puts all of the remote data" do
@@ -155,6 +157,152 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
             , { timestamp: "2022-12-24T00:00:00.000Z"
               , clones: Just { count: 4, uniques: 2 }
               , views: Nothing
+              }
+            ]
+        actual `shouldEqual` expected
+
+    describe "when store holds existing data" do
+      let
+        storeData =
+          [ { timestamp: "2022-12-21T00:00:00.000Z"
+            , clones: Just { count: 6, uniques: 6 }
+            , views: Just { count: 0, uniques: 0 }
+            }
+          ]
+      it "adds new data" do
+        let
+          remoteData =
+            { views:
+                [ { timestamp: "2022-12-22T00:00:00.000Z"
+                  , count: 6
+                  , uniques: 2
+                  }
+                , { timestamp: "2022-12-23T00:00:00.000Z"
+                  , count: 6
+                  , uniques: 3
+                  }
+                ]
+            , clones:
+                [ { timestamp: "2022-12-22T00:00:00.000Z"
+                  , count: 3
+                  , uniques: 1
+                  }
+                , { timestamp: "2022-12-23T00:00:00.000Z"
+                  , count: 4
+                  , uniques: 3
+                  }
+                , { timestamp: "2022-12-24T00:00:00.000Z"
+                  , count: 4
+                  , uniques: 2
+                  }
+                ]
+            }
+          actual = execTestM storeData remoteData update
+          expected =
+            [ { timestamp: "2022-12-21T00:00:00.000Z"
+              , clones: Just { count: 6, uniques: 6 }
+              , views: Just { count: 0, uniques: 0 }
+              }
+            , { timestamp: "2022-12-22T00:00:00.000Z"
+              , clones: Just { count: 3, uniques: 1 }
+              , views: Just { count: 6, uniques: 2 }
+              }
+            , { timestamp: "2022-12-23T00:00:00.000Z"
+              , clones: Just { count: 4, uniques: 3 }
+              , views: Just { count: 6, uniques: 3 }
+              }
+            , { timestamp: "2022-12-24T00:00:00.000Z"
+              , clones: Just { count: 4, uniques: 2 }
+              , views: Nothing
+              }
+            ]
+        actual `shouldEqual` expected
+
+    describe "when remote data conflicts with data in the store" do
+      let
+        storeData =
+          [ { timestamp: "2022-12-21T00:00:00.000Z"
+            , clones: Just { count: 6, uniques: 6 }
+            , views: Just { count: 0, uniques: 0 }
+            }
+          ]
+      it "replaces store data with remote data" do
+        let
+          remoteData =
+            { views:
+                [ { timestamp: "2022-12-21T00:00:00.000Z"
+                  , count: 9
+                  , uniques: 7
+                  }
+                ]
+            , clones:
+                [ { timestamp: "2022-12-21T00:00:00.000Z"
+                  , count: 5
+                  , uniques: 2
+                  }
+                ]
+            }
+          actual = execTestM storeData remoteData update
+          expected =
+            [ { timestamp: "2022-12-21T00:00:00.000Z"
+              , clones: Just { count: 5, uniques: 2 }
+              , views: Just { count: 9, uniques: 7 }
+              }
+            ]
+        actual `shouldEqual` expected
+
+    describe "when store holds data missing in remote data (clones)" do
+      let
+        storeData =
+          [ { timestamp: "2022-12-21T00:00:00.000Z"
+            , clones: Just { count: 6, uniques: 6 }
+            , views: Just { count: 0, uniques: 0 }
+            }
+          ]
+      it "preserves existing data" do
+        let
+          remoteData =
+            { views:
+                [ { timestamp: "2022-12-21T00:00:00.000Z"
+                  , count: 0
+                  , uniques: 0
+                  }
+                ]
+            , clones: []
+            }
+          actual = execTestM storeData remoteData update
+          expected =
+            [ { timestamp: "2022-12-21T00:00:00.000Z"
+              , clones: Just { count: 6, uniques: 6 }
+              , views: Just { count: 0, uniques: 0 }
+              }
+            ]
+        actual `shouldEqual` expected
+
+    describe "when store holds data missing in remote data (views)" do
+      let
+        storeData =
+          [ { timestamp: "2022-12-21T00:00:00.000Z"
+            , clones: Just { count: 4, uniques: 1 }
+            , views: Just { count: 11, uniques: 7 }
+            }
+          ]
+      it "preserves existing data" do
+        let
+          remoteData =
+            { views: []
+            , clones:
+                [ { timestamp: "2022-12-21T00:00:00.000Z"
+                  , count: 4
+                  , uniques: 1
+                  }
+                ]
+            }
+          actual = execTestM storeData remoteData update
+          expected =
+            [ { timestamp: "2022-12-21T00:00:00.000Z"
+              , clones: Just { count: 4, uniques: 1 }
+              , views: Just { count: 11, uniques: 7 }
               }
             ]
         actual `shouldEqual` expected
