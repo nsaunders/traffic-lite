@@ -2,24 +2,17 @@ module Test.Main where
 
 import Prelude
 
-import Control.Monad.Error.Class (class MonadThrow)
-import Control.Monad.Except.Trans (ExceptT, runExceptT)
 import Control.Monad.Reader.Class (class MonadAsk, asks)
-import Control.Monad.Reader.Trans (ReaderT(..), runReaderT)
-import Control.Monad.State (State, runState)
+import Control.Monad.Reader.Trans (ReaderT, runReaderT)
+import Control.Monad.State (State, execState)
 import Control.Monad.State.Class (class MonadState, get, put)
-import Data.Bifunctor (lmap)
-import Data.Either (blush)
-import Data.Maybe (Maybe(..), isNothing)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Effect.Class.Console (log)
 import Test.Spec (describe, it)
-import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
+import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
-import TrafficLite.Data.Error as TrafficLite
 import TrafficLite.Data.Metric (CountRep, TimestampRep)
 import TrafficLite.Effect.RemoteData (class MonadRemoteData)
 import TrafficLite.Effect.Store (class MonadStore)
@@ -38,8 +31,7 @@ type StoreData =
     | TimestampRep + ()
     }
 
-newtype TestM a = TestM
-  (ExceptT TrafficLite.Error (ReaderT RemoteData (State StoreData)) a)
+newtype TestM a = TestM (ReaderT RemoteData (State StoreData) a)
 
 derive newtype instance Applicative TestM
 derive newtype instance Apply TestM
@@ -48,7 +40,6 @@ derive newtype instance Functor TestM
 derive newtype instance Monad TestM
 derive newtype instance MonadAsk RemoteData TestM
 derive newtype instance MonadState StoreData TestM
-derive newtype instance MonadThrow TrafficLite.Error TestM
 
 instance MonadRemoteData TestM where
   fetchViews = asks _.views
@@ -58,14 +49,9 @@ instance MonadStore TestM where
   get = get
   put = put
 
-execTestM
-  :: forall a
-   . StoreData
-  -> RemoteData
-  -> TestM a
-  -> Maybe TrafficLite.Error /\ StoreData
+execTestM :: forall a. StoreData -> RemoteData -> TestM a -> StoreData
 execTestM initialState remoteData (TestM m) =
-  lmap blush $ runState (runReaderT (runExceptT m) remoteData) initialState
+  execState (runReaderT m remoteData) initialState
 
 main :: Effect Unit
 main = launchAff_ $ runSpec [ consoleReporter ] do
@@ -136,10 +122,8 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
                   }
                 ]
             }
-          error /\ state = execTestM storeData remoteData update
-        error `shouldSatisfy` isNothing
-        state
-          `shouldEqual`
+          actual = execTestM storeData remoteData update
+          expected =
             [ { timestamp: "2022-12-17T00:00:00.000Z"
               , clones: Nothing
               , views: Just { count: 12, uniques: 11 }
@@ -173,3 +157,4 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
               , views: Nothing
               }
             ]
+        actual `shouldEqual` expected
