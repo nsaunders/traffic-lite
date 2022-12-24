@@ -1,4 +1,8 @@
-module TrafficLite.Effect.RemoteData (class MonadRemoteData, fetchClones, fetchViews) where
+module TrafficLite.Effect.RemoteData
+  ( class MonadRemoteData
+  , fetchClones
+  , fetchViews
+  ) where
 
 import Prelude
 

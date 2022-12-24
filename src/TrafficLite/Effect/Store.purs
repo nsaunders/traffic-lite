@@ -4,7 +4,13 @@ import Prelude
 
 import Control.Monad.Error.Class (class MonadThrow, throwError, try)
 import Control.Monad.Reader.Class (class MonadAsk, ask)
-import Data.Argonaut (decodeJson, encodeJson, parseJson, printJsonDecodeError, stringifyWithIndent)
+import Data.Argonaut
+  ( decodeJson
+  , encodeJson
+  , parseJson
+  , printJsonDecodeError
+  , stringifyWithIndent
+  )
 import Data.Either (either, fromRight)
 import Data.Maybe (Maybe)
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -20,20 +26,21 @@ import TrafficLite.Data.Metric (CountRep, TimestampRep)
 import Type.Row (type (+))
 
 class MonadStore (m :: Type -> Type) where
-  get :: m
-           ( Array
-               { clones :: Maybe { | CountRep + () }
-               , views :: Maybe { | CountRep + () }
-               | TimestampRep + ()
-               }
-           )
-  put ::
-        Array
+  get
+    :: m
+         ( Array
              { clones :: Maybe { | CountRep + () }
              , views :: Maybe { | CountRep + () }
              | TimestampRep + ()
              }
-        -> m Unit
+         )
+  put
+    :: Array
+         { clones :: Maybe { | CountRep + () }
+         , views :: Maybe { | CountRep + () }
+         | TimestampRep + ()
+         }
+    -> m Unit
 
 getImpl
   :: forall m r

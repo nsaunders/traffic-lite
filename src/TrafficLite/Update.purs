@@ -3,7 +3,11 @@ module TrafficLite.Update where
 import Prelude
 
 import TrafficLite.Data.Metric (mergeDataSets, splitDataSet, unionByTimestamp)
-import TrafficLite.Effect.RemoteData (class MonadRemoteData, fetchClones, fetchViews)
+import TrafficLite.Effect.RemoteData
+  ( class MonadRemoteData
+  , fetchClones
+  , fetchViews
+  )
 import TrafficLite.Effect.Store (class MonadStore)
 import TrafficLite.Effect.Store as Store
 
