@@ -5,7 +5,6 @@
   , "affjax-node"
   , "argonaut"
   , "arrays"
-  , "console"
   , "control"
   , "dotenv"
   , "effect"
