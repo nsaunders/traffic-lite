@@ -1,4 +1,4 @@
-{ name = "my-project"
+{ name = "traffic-lite"
 , dependencies =
   [ "aff"
   , "affjax"

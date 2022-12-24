@@ -24,5 +24,7 @@ in
 
       pkgs.nodejs-16_x
       pkgs.nodePackages.bower
+
+      pkgs.esbuild
     ];
   }
