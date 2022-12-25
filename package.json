@@ -4,5 +4,8 @@
   "dependencies": {
     "@actions/core": "^1.10.0",
     "xhr2": "^0.2.1"
+  },
+  "devDependencies": {
+    "preamble-cli": "^2.0.0"
   }
 }

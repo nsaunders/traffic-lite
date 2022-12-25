@@ -1,0 +1,16 @@
+name: 'Traffic Lite'
+description: 'Preserve GitHub traffic data beyond 14-day limit.'
+inputs:
+  path:
+    description: The path to the file where traffic data will be recorded in JSON format
+    required: false
+    default: 'meta/traffic.json'
+  repo:
+    description: The repository whose traffic data to track, in OWNER/NAME format
+    required: true
+  token:
+    description: The token used to access the GitHub repository traffic API
+    required: true
+runs:
+  using: 'node16'
+  main: 'index.js'

@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**/*.purs'
+      - 'src/**/*.js'
+      - 'test/**/*.purs'
+      - 'test/**/*.js'
+      - '*.json'
+      - '*.dhall'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'src/**/*.purs'
+      - 'src/**/*.js'
+      - 'test/**/*.purs'
+      - 'test/**/*.js'
+      - '*.json'
+      - '*.dhall'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  build:
+    name: Build
+    
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up a PureScript toolchain
+        uses: purescript-contrib/setup-purescript@main
+        with:
+          purescript: "unstable"
+          purs-tidy: "latest"
+
+      - name: Check formatting
+        run: purs-tidy check src test
+
+      - name: Cache PureScript dependencies
+        uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          path: |
+            .spago
+            output
+
+      - name: Cache Node.js dependencies
+        uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          path: node_modules
+
+      - name: Install PureScript dependencies
+        run: spago install
+
+      - name: Build source
+        run: spago build --no-install --purs-args '--censor-lib --strict'
+
+      - name: Run tests
+        run: spago -x test.dhall test
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Bundle app
+        run: spago bundle-app --no-install --no-build --platform=node --then "npx preamble -p \"import __module from 'module';import __path from 'path';import __url from 'url';const require = __module.createRequire(import.meta.url);\" -o index.js"
+
+      - name: Commit app bundle
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'index.js'
+          author_name: GitHub Actions
+          author_email: 41898282+github-actions[bot]@users.noreply.github.com
+          message: Update app bundle.
