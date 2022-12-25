@@ -66,6 +66,9 @@ jobs:
       - name: Run tests
         run: spago -x test.dhall test
 
+      - name: Install esbuild
+        run: npm install -g esbuild
+
       - name: Bundle app
         run: spago bundle-app --no-install --no-build --platform=node --then "npx preamble -p \"import __module from 'module';import __path from 'path';import __url from 'url';const require = __module.createRequire(import.meta.url);\" -o index.js"
 
