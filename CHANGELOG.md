@@ -12,6 +12,11 @@ Bugfixes:
 
 Other improvements:
 
+## [0.1.1] - 2022-12-26
+
+Bugfixes:
+- CI workflow: Ensure that the required "banner" is added to the app bundle.
+
 ## [0.1.0] - 2022-12-26
 
 Initial release
