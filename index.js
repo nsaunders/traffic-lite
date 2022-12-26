@@ -1,4 +1,4 @@
-var __create = Object.create;
+import __module from 'module';import __path from 'path';import __url from 'url';const require = __module.createRequire(import.meta.url);var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
