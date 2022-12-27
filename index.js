@@ -2777,17 +2777,6 @@ var require_xhr2 = __commonJS({
   }
 });
 
-// output/Control.Bind/foreign.js
-var arrayBind = function(arr) {
-  return function(f) {
-    var result = [];
-    for (var i = 0, l = arr.length; i < l; i++) {
-      Array.prototype.push.apply(result, f(arr[i]));
-    }
-    return result;
-  };
-};
-
 // output/Control.Apply/foreign.js
 var arrayApply = function(fs) {
   return function(xs) {
@@ -2955,6 +2944,17 @@ var lift2 = function(dictApply) {
         return apply1(map24(f)(a))(b);
       };
     };
+  };
+};
+
+// output/Control.Bind/foreign.js
+var arrayBind = function(arr) {
+  return function(f) {
+    var result = [];
+    for (var i = 0, l = arr.length; i < l; i++) {
+      Array.prototype.push.apply(result, f(arr[i]));
+    }
+    return result;
   };
 };
 
@@ -6181,6 +6181,11 @@ import process2 from "process";
 function setEnv(var_) {
   return (val) => () => {
     process2.env[var_] = val;
+  };
+}
+function exit(code) {
+  return () => {
+    process2.exit(code);
   };
 }
 
@@ -29691,11 +29696,20 @@ var bind9 = /* @__PURE__ */ bind(bindAff);
 var bind1 = /* @__PURE__ */ bind(/* @__PURE__ */ bindExceptT(monadAff));
 var getEnvironment2 = /* @__PURE__ */ getEnvironment(/* @__PURE__ */ monadEffectExceptT(monadEffectAff))(/* @__PURE__ */ monadThrowExceptT(monadAff));
 var update2 = /* @__PURE__ */ update(bindUpdateM)(monadRemoteDataUpdateM)(monadStoreUpdateM);
+var applyFirst3 = /* @__PURE__ */ applyFirst(applyEffect);
 var liftEffect4 = /* @__PURE__ */ liftEffect(monadEffectAff);
 var main = /* @__PURE__ */ launchAff_(/* @__PURE__ */ bind9(loadFile)(function() {
-  return bind9(runExceptT(bind1(getEnvironment2)(runUpdateM(update2))))(either(function($12) {
-    return liftEffect4(error2(printError($12)));
-  })($$const(liftEffect4(info("Traffic update successful")))));
+  return bind9(runExceptT(bind1(getEnvironment2)(runUpdateM(update2))))(function() {
+    var $13 = either(function() {
+      var $15 = applyFirst3(exit(1));
+      return function($16) {
+        return $15(error2(printError($16)));
+      };
+    }())($$const(info("Traffic update successful")));
+    return function($14) {
+      return liftEffect4($13($14));
+    };
+  }());
 }));
 
 // <stdin>
