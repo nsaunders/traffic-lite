@@ -12,6 +12,11 @@ Bugfixes:
 
 Other improvements:
 
+## [0.1.2] - 2022-12-27
+
+Bugfixes:
+- Exit code in the event of an error
+
 ## [0.1.1] - 2022-12-26
 
 Bugfixes:
