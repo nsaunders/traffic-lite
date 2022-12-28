@@ -2,7 +2,6 @@ module Main where
 
 import Prelude
 
-import Control.Apply (applyFirst)
 import Control.Monad.Except.Trans (runExceptT)
 import Data.Either (either)
 import Dotenv as Dotenv
@@ -21,6 +20,9 @@ main = launchAff_ do
   _ <- Dotenv.loadFile
   runExceptT (getEnvironment >>= runUpdateM update) >>=
     ( either
-        (TrafficLite.printError >>> Actions.error >>> applyFirst (exit 1))
+        ( \error -> do
+            Actions.error $ TrafficLite.printError error
+            exit 1
+        )
         (const $ Actions.info "Traffic update successful")
     ) >>> liftEffect
