@@ -23,7 +23,7 @@ Next, add the PAT to your repository's encrypted secrets following [these instru
 You'll need to add a step like this to your GitHub Actions workflow file.
 
 ```yaml
-- uses: nsaunders/traffic-lite@v0.1.2
+- uses: nsaunders/traffic-lite@v1
   with:
     path: meta/traffic.json # default
     repo: ${{ github.repository }}
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: nsaunders/traffic-lite@v0.1.2
+      - uses: nsaunders/traffic-lite@v1
         with:
           path: ${{ env.TRAFFIC_PATH }}
           repo: ${{ github.repository }}
