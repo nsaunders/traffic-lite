@@ -1,5 +1,9 @@
 name: 'Traffic Lite'
 description: 'Preserve GitHub repository traffic data beyond the 14-day limit.'
+author: 'Nick Saunders'
+branding:
+  icon: 'activity'
+  color: 'black'
 inputs:
   path:
     description: The path to the file where traffic data will be recorded in JSON format

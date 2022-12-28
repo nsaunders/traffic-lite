@@ -16,6 +16,7 @@ Other improvements:
 
 Other improvements:
 - Additional documentation
+- Author and branding information added to action metadata file
 
 ## [0.1.3] - 2022-12-28
 
