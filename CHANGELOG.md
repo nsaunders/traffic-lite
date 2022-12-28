@@ -12,6 +12,11 @@ Bugfixes:
 
 Other improvements:
 
+## [0.1.3] - 2022-12-28
+
+Other improvements:
+- Improved error reporting
+
 ## [0.1.2] - 2022-12-27
 
 Bugfixes:
