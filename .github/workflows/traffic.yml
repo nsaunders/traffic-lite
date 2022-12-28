@@ -24,6 +24,7 @@ jobs:
       - name: Commit update
         uses: EndBug/add-and-commit@v9
         with:
+          # add: ${{ env.TRAFFIC_PATH }}
           add: meta/traffic.json
           author_name: GitHub Actions
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
