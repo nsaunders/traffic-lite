@@ -33,6 +33,11 @@ You'll need to add a step like this to your GitHub Actions workflow file.
 | **repo** | The repository whose traffic to monitor in _owner/repository_ format. A typical value, obtained from the [github context](https://docs.github.com/en/actions/learn-github-actions/contexts#github-context), would be `${{ github.repository }}`. | required |
 | **token** | The PAT used to access the Repository Traffic API | required |
 
+#### Recommendations
+
+1. Use a [`schedule` event](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule) to run the traffic update workflow weekly. This will allow a few extra days to resolve any failures before traffic data is lost due to the 14-day limit.
+2. Use this in combination with [actions/checkout](https://github.com/actions/checkout) and [EndBug/add-and-commit](https://github.com/EndBug/add-and-commit) to ensure that history is saved across workflow runs. Alternatively, you can design any workflow that begins by retrieving your traffic file (e.g. from a S3 bucket) into your workspace and saving it back to the same place at the end.
+
 ## Sample workflow
 
 traffic.yml:
