@@ -27,11 +27,11 @@ You'll need to add a step like this to your GitHub Actions workflow file.
 
 #### Inputs
 
-| Name | Description |
-|-|-|
-| **path** | The path (relative to the workspace) where traffic data will be written in JSON format. If the file does not exist, the it will be created automatically. Otherwise, new data will be added to it while preserving any existing data. |
-| **repo** | The repository whose traffic to monitor in _owner/repository_ format. A typical value, obtained from the [github context](https://docs.github.com/en/actions/learn-github-actions/contexts#github-context), would be `${{ github.repository }}`. |
-| **token** | The PAT used to access the Repository Traffic API |
+| Name | Description | Required? |
+|-|-|-|
+| **path**| The path (relative to the workspace) where traffic data will be written in JSON format. If the file does not exist, then it will be created automatically. Otherwise, new data will be added to it while preserving any existing data. If not specified, this setting defaults to _meta/traffic.json_. | optional |
+| **repo** | The repository whose traffic to monitor in _owner/repository_ format. A typical value, obtained from the [github context](https://docs.github.com/en/actions/learn-github-actions/contexts#github-context), would be `${{ github.repository }}`. | required |
+| **token** | The PAT used to access the Repository Traffic API | required |
 
 ## Sample workflow
 
