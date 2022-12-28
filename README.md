@@ -1,5 +1,10 @@
 # Traffic Lite
 
+[![CI](https://github.com/nsaunders/traffic-lite/workflows/CI/badge.svg?branch=master)](https://github.com/nsaunders/traffic-lite/actions?query=workflow%3ACI+branch%3Amaster)
+[![Latest release](http://img.shields.io/github/release/nsaunders/traffic-lite.svg)](https://github.com/nsaunders/traffic-lite/releases)
+
+## Overview
+
 This GitHub Action offers a simple way to preserve your repository's traffic data beyond the usual [14-day limit](https://github.com/isaacs/github/issues/399). It uses the [Repository Traffic API](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28) to capture clone and view counts, logging the results in JSON format to a file of your choosing. You can use the [EndBug/add-and-commit](https://github.com/EndBug/add-and-commit) action to commit the result to your Git repository or even publish it to an external service like S3.
 
 ## Getting started
@@ -13,24 +18,34 @@ Next, add the PAT to your repository's encrypted secrets following [these instru
 ### Workflow configuration
 
 > **Note**
-> This section focuses on configuring this action. For a complete workflow you can use, see [Sample workflow](#sample-workflow) below.
+> This section focuses on configuring this particular action. For a complete workflow you can use, see [Sample workflow](#sample-workflow) below.
 
 You'll need to add a step like this to your GitHub Actions workflow file.
 
 ```yaml
 - uses: nsaunders/traffic-lite@v0.1.2
   with:
-    path: meta/traffic.json
+    path: meta/traffic.json # default
     repo: ${{ github.repository }}
     token: ${{ secrets.GH_ACCESS_TOKEN }}
 ```
+
+#### How it works
+When this step runs:
+* the file at the specified `path` will be read if it exists;
+* new data will be fetched from the Repository Traffic API endpoints for `clones` and `views`;
+* the new data will be merged with any existing data; and
+* the result will be saved to the file at the specified `path`.
+
+> **Note**
+> If the file at the specified `path` does not exist, it will automatically be created for you.
 
 #### Inputs
 
 | Name | Description | Required? |
 |-|-|-|
 | **path**| The path (relative to the workspace) where traffic data will be written in JSON format. If the file does not exist, then it will be created automatically. Otherwise, new data will be added to it while preserving any existing data. If not specified, this setting defaults to _meta/traffic.json_. | optional |
-| **repo** | The repository whose traffic to monitor in _owner/repository_ format. A typical value, obtained from the [github context](https://docs.github.com/en/actions/learn-github-actions/contexts#github-context), would be `${{ github.repository }}`. | required |
+| **repo** | The repository whose traffic to monitor in _&lt;owner&gt;/&lt;repository&gt;_ format. A typical value, obtained from the [github context](https://docs.github.com/en/actions/learn-github-actions/contexts#github-context), would be `${{ github.repository }}`. | required |
 | **token** | The PAT used to access the Repository Traffic API | required |
 
 #### Recommendations
