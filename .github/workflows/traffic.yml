@@ -13,21 +13,22 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # env:
-    #   TRAFFIC_PATH: meta/traffic.json
+    env:
+      TRAFFIC_PATH: meta/traffic.json
 
     steps:
       - uses: actions/checkout@v2
 
       - uses: nsaunders/traffic-lite@master
         with:
+          path: ${{ env.TRAFFIC_PATH }}
           repo: ${{ github.repository }}
           token: ${{ secrets.GH_ACCESS_TOKEN }}
 
       - name: Commit update
         uses: EndBug/add-and-commit@v9
         with:
-          add: meta/traffic.json
+          add: ${{ env.TRAFFIC_PATH }}
           author_name: GitHub Actions
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: Log repository traffic.
