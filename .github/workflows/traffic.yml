@@ -1,6 +1,9 @@
 name: Traffic
 
 on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/traffic.yml']
   schedule: 
     - cron: "15 23 * * 0"
 
