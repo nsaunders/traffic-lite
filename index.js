@@ -2777,6 +2777,17 @@ var require_xhr2 = __commonJS({
   }
 });
 
+// output/Control.Bind/foreign.js
+var arrayBind = function(arr) {
+  return function(f) {
+    var result = [];
+    for (var i = 0, l = arr.length; i < l; i++) {
+      Array.prototype.push.apply(result, f(arr[i]));
+    }
+    return result;
+  };
+};
+
 // output/Control.Apply/foreign.js
 var arrayApply = function(fs) {
   return function(xs) {
@@ -2947,17 +2958,6 @@ var lift2 = function(dictApply) {
   };
 };
 
-// output/Control.Bind/foreign.js
-var arrayBind = function(arr) {
-  return function(f) {
-    var result = [];
-    for (var i = 0, l = arr.length; i < l; i++) {
-      Array.prototype.push.apply(result, f(arr[i]));
-    }
-    return result;
-  };
-};
-
 // output/Control.Applicative/index.js
 var pure = function(dict) {
   return dict.pure;
@@ -3032,12 +3032,12 @@ var discardUnit = {
 
 // output/Control.Monad/index.js
 var ap = function(dictMonad) {
-  var bind10 = bind(dictMonad.Bind1());
+  var bind11 = bind(dictMonad.Bind1());
   var pure15 = pure(dictMonad.Applicative0());
   return function(f) {
     return function(a) {
-      return bind10(f)(function(f$prime) {
-        return bind10(a)(function(a$prime) {
+      return bind11(f)(function(f$prime) {
+        return bind11(a)(function(a$prime) {
           return pure15(f$prime(a$prime));
         });
       });
@@ -3046,6 +3046,11 @@ var ap = function(dictMonad) {
 };
 
 // output/Data.Semigroup/foreign.js
+var concatString = function(s1) {
+  return function(s2) {
+    return s1 + s2;
+  };
+};
 var concatArray = function(xs) {
   return function(ys) {
     if (xs.length === 0)
@@ -3089,6 +3094,9 @@ var semigroupUnit = {
       return unit;
     };
   }
+};
+var semigroupString = {
+  append: concatString
 };
 var semigroupArray = {
   append: concatArray
@@ -3646,6 +3654,12 @@ var monoidUnit = {
     return semigroupUnit;
   }
 };
+var monoidString = {
+  mempty: "",
+  Semigroup0: function() {
+    return semigroupString;
+  }
+};
 var mempty = function(dict) {
   return dict.mempty;
 };
@@ -4029,10 +4043,10 @@ var runExceptT = function(v) {
 };
 var monadTransExceptT = {
   lift: function(dictMonad) {
-    var bind10 = bind(dictMonad.Bind1());
+    var bind11 = bind(dictMonad.Bind1());
     var pure15 = pure(dictMonad.Applicative0());
     return function(m) {
-      return bind10(m)(function(a) {
+      return bind11(m)(function(a) {
         return pure15(new Right(a));
       });
     };
@@ -4063,12 +4077,12 @@ var monadExceptT = function(dictMonad) {
   };
 };
 var bindExceptT = function(dictMonad) {
-  var bind10 = bind(dictMonad.Bind1());
+  var bind11 = bind(dictMonad.Bind1());
   var pure15 = pure(dictMonad.Applicative0());
   return {
     bind: function(v) {
       return function(k) {
-        return bind10(v)(either(function($187) {
+        return bind11(v)(either(function($187) {
           return pure15(Left.create($187));
         })(function(a) {
           var v12 = k(a);
@@ -4137,19 +4151,19 @@ var altExceptT = function(dictSemigroup) {
   var append6 = append(dictSemigroup);
   return function(dictMonad) {
     var Bind1 = dictMonad.Bind1();
-    var bind10 = bind(Bind1);
+    var bind11 = bind(Bind1);
     var pure15 = pure(dictMonad.Applicative0());
     var functorExceptT1 = functorExceptT(Bind1.Apply0().Functor0());
     return {
       alt: function(v) {
         return function(v12) {
-          return bind10(v)(function(rm2) {
+          return bind11(v)(function(rm2) {
             if (rm2 instanceof Right) {
               return pure15(new Right(rm2.value0));
             }
             ;
             if (rm2 instanceof Left) {
-              return bind10(v12)(function(rn) {
+              return bind11(v12)(function(rn) {
                 if (rn instanceof Right) {
                   return pure15(new Right(rn.value0));
                 }
@@ -5955,13 +5969,13 @@ var applyReaderT = function(dictApply) {
   };
 };
 var bindReaderT = function(dictBind) {
-  var bind10 = bind(dictBind);
+  var bind11 = bind(dictBind);
   var applyReaderT1 = applyReaderT(dictBind.Apply0());
   return {
     bind: function(v) {
       return function(k) {
         return function(r) {
-          return bind10(v(r))(function(a) {
+          return bind11(v(r))(function(a) {
             var v12 = k(a);
             return v12(r);
           });
@@ -6804,7 +6818,7 @@ function _mapWithKey(m0, f) {
   }
   return m;
 }
-function _foldM(bind10) {
+function _foldM(bind11) {
   return function(f) {
     return function(mz) {
       return function(m) {
@@ -6816,7 +6830,7 @@ function _foldM(bind10) {
         }
         for (var k in m) {
           if (hasOwnProperty.call(m, k)) {
-            acc = bind10(acc)(g(k));
+            acc = bind11(acc)(g(k));
           }
         }
         return acc;
@@ -29309,6 +29323,71 @@ var getField2 = function(dictDecodeJson) {
   return getField(decodeJson(dictDecodeJson));
 };
 
+// output/Data.Bifoldable/index.js
+var identity10 = /* @__PURE__ */ identity(categoryFn);
+var bifoldableEither = {
+  bifoldr: function(v) {
+    return function(v12) {
+      return function(v2) {
+        return function(v32) {
+          if (v32 instanceof Left) {
+            return v(v32.value0)(v2);
+          }
+          ;
+          if (v32 instanceof Right) {
+            return v12(v32.value0)(v2);
+          }
+          ;
+          throw new Error("Failed pattern match at Data.Bifoldable (line 62, column 1 - line 68, column 32): " + [v.constructor.name, v12.constructor.name, v2.constructor.name, v32.constructor.name]);
+        };
+      };
+    };
+  },
+  bifoldl: function(v) {
+    return function(v12) {
+      return function(v2) {
+        return function(v32) {
+          if (v32 instanceof Left) {
+            return v(v2)(v32.value0);
+          }
+          ;
+          if (v32 instanceof Right) {
+            return v12(v2)(v32.value0);
+          }
+          ;
+          throw new Error("Failed pattern match at Data.Bifoldable (line 62, column 1 - line 68, column 32): " + [v.constructor.name, v12.constructor.name, v2.constructor.name, v32.constructor.name]);
+        };
+      };
+    };
+  },
+  bifoldMap: function(dictMonoid) {
+    return function(v) {
+      return function(v12) {
+        return function(v2) {
+          if (v2 instanceof Left) {
+            return v(v2.value0);
+          }
+          ;
+          if (v2 instanceof Right) {
+            return v12(v2.value0);
+          }
+          ;
+          throw new Error("Failed pattern match at Data.Bifoldable (line 62, column 1 - line 68, column 32): " + [v.constructor.name, v12.constructor.name, v2.constructor.name]);
+        };
+      };
+    };
+  }
+};
+var bifoldMap = function(dict) {
+  return dict.bifoldMap;
+};
+var bifold = function(dictBifoldable) {
+  var bifoldMap1 = bifoldMap(dictBifoldable);
+  return function(dictMonoid) {
+    return bifoldMap1(dictMonoid)(identity10)(identity10);
+  };
+};
+
 // output/TrafficLite.Effect.RemoteData/index.js
 var sortWith2 = /* @__PURE__ */ sortWith(ordString);
 var bindFlipped4 = /* @__PURE__ */ bindFlipped(bindEither);
@@ -29328,13 +29407,18 @@ var decodeJson2 = /* @__PURE__ */ decodeJson(/* @__PURE__ */ decodeArray2(/* @__
 })()())()));
 var getField3 = /* @__PURE__ */ getField2(decodeJsonJson);
 var decodeJson1 = /* @__PURE__ */ decodeJson(/* @__PURE__ */ decodeForeignObject2(decodeJsonJson));
+var bifold2 = /* @__PURE__ */ bifold(bifoldableEither)(monoidString);
+var bimap2 = /* @__PURE__ */ bimap(bifunctorEither);
+var bind9 = /* @__PURE__ */ bind(bindEither);
+var getField1 = /* @__PURE__ */ getField2(decodeJsonString);
+var show7 = /* @__PURE__ */ show(showInt);
 var fetchViews = function(dict) {
   return dict.fetchViews;
 };
 var fetchCounts = function(dictMonadAff) {
   var Monad0 = dictMonadAff.MonadEffect0().Monad0();
   var Bind1 = Monad0.Bind1();
-  var bind10 = bind(Bind1);
+  var bind12 = bind(Bind1);
   var bindFlipped1 = bindFlipped(Bind1);
   var pure15 = pure(Monad0.Applicative0());
   var liftAff2 = liftAff(dictMonadAff);
@@ -29343,7 +29427,7 @@ var fetchCounts = function(dictMonadAff) {
     return function(dictMonadThrow) {
       var throwError4 = throwError(dictMonadThrow);
       return function(metricType) {
-        return bind10(ask2)(function(v) {
+        return bind12(ask2)(function(v) {
           var url = "https://api.github.com/repos/" + (v.repo + ("/traffic/" + metricType));
           var headers = [new Accept("application/vnd.github+json"), new RequestHeader("Authorization", "Bearer " + v.token), new RequestHeader("X-GitHub-Api-Version", "2022-11-28")];
           var config = {
@@ -29357,20 +29441,29 @@ var fetchCounts = function(dictMonadAff) {
             username: defaultRequest.username,
             withCredentials: defaultRequest.withCredentials
           };
-          return bind10(bindFlipped1(either(function($58) {
-            return throwError4(FetchError.create(printError2($58)));
+          return bind12(bindFlipped1(either(function($67) {
+            return throwError4(FetchError.create(printError2($67)));
           })(pure15))(liftAff2(request2(config))))(function(v12) {
-            return either(function($59) {
-              return throwError4($$TypeError.create(printJsonDecodeError($59)));
-            })(function() {
-              var $60 = takeEnd(13);
-              var $61 = sortWith2(function(v2) {
-                return v2.timestamp;
-              });
-              return function($62) {
-                return pure15($60($61($62)));
-              };
-            }())(bindFlipped4(decodeJson2)(bindFlipped4(flip(getField3)(metricType))(decodeJson1(v12.body))));
+            if (v12.status === 200) {
+              return either(function($68) {
+                return throwError4($$TypeError.create(printJsonDecodeError($68)));
+              })(function() {
+                var $69 = takeEnd(13);
+                var $70 = sortWith2(function(v2) {
+                  return v2.timestamp;
+                });
+                return function($71) {
+                  return pure15($69($70($71)));
+                };
+              }())(bindFlipped4(decodeJson2)(bindFlipped4(flip(getField3)(metricType))(decodeJson1(v12.body))));
+            }
+            ;
+            var msg = bifold2(bimap2(function(v2) {
+              return "with no message.";
+            })(function(m) {
+              return "with message: " + m;
+            })(bind9(decodeJObject(v12.body))(flip(getField1)("message"))));
+            return throwError4(new FetchError("Unexpected " + (show7(v12.status) + (" response " + msg))));
           });
         });
       };
@@ -29534,7 +29627,7 @@ var decodeJson3 = /* @__PURE__ */ decodeJson(/* @__PURE__ */ decodeArray2(/* @__
 var putImpl = function(dictMonadAff) {
   var Monad0 = dictMonadAff.MonadEffect0().Monad0();
   var Bind1 = Monad0.Bind1();
-  var bind10 = bind(Bind1);
+  var bind11 = bind(Bind1);
   var discard1 = discard3(Bind1);
   var liftAff2 = liftAff(dictMonadAff);
   var pure15 = pure(Monad0.Applicative0());
@@ -29543,15 +29636,15 @@ var putImpl = function(dictMonadAff) {
     return function(dictMonadThrow) {
       var throwError4 = throwError(dictMonadThrow);
       return function(metrics) {
-        return bind10(ask2)(function(v) {
+        return bind11(ask2)(function(v) {
           var dir = dirname(v.path);
-          return discard1(bind10(liftAff2($$try4(mkdir$prime2(dir)({
+          return discard1(bind11(liftAff2($$try4(mkdir$prime2(dir)({
             mode: mkPerms(all4)(all4)(read7),
             recursive: true
           }))))(either(function(e) {
             return throwError4(new SaveError('Creating directory "' + (dir + ('" failed: ' + message(e)))));
           })(pure15)))(function() {
-            return bind10(liftAff2($$try4(writeTextFile2(UTF8.value)(v.path)(stringifyWithIndent(2)(encodeJson2(metrics))))))(either(function(e) {
+            return bind11(liftAff2($$try4(writeTextFile2(UTF8.value)(v.path)(stringifyWithIndent(2)(encodeJson2(metrics))))))(either(function(e) {
               return throwError4(new SaveError('Writing file "' + (v.path + ('" failed: ' + message(e)))));
             })(pure15));
           });
@@ -29565,15 +29658,15 @@ var put3 = function(dict) {
 };
 var getImpl = function(dictMonadAff) {
   var Monad0 = dictMonadAff.MonadEffect0().Monad0();
-  var bind10 = bind(Monad0.Bind1());
+  var bind11 = bind(Monad0.Bind1());
   var liftAff2 = liftAff(dictMonadAff);
   var pure15 = pure(Monad0.Applicative0());
   return function(dictMonadAsk) {
     var ask2 = ask(dictMonadAsk);
     return function(dictMonadThrow) {
       var throwError4 = throwError(dictMonadThrow);
-      return bind10(ask2)(function(v) {
-        return bind10(liftAff2(map22(fromRight("[]"))($$try4(readTextFile2(UTF8.value)(v.path)))))(function() {
+      return bind11(ask2)(function(v) {
+        return bind11(liftAff2(map22(fromRight("[]"))($$try4(readTextFile2(UTF8.value)(v.path)))))(function() {
           var $108 = either(function($111) {
             return throwError4($$TypeError.create(printJsonDecodeError($111)));
           })(pure15);
@@ -29668,7 +29761,7 @@ var mergeDataSets = function(source2) {
 // output/TrafficLite.Update/index.js
 var unionByTimestamp2 = /* @__PURE__ */ unionByTimestamp(eqString);
 var update = function(dictBind) {
-  var bind10 = bind(dictBind);
+  var bind11 = bind(dictBind);
   var map24 = map(dictBind.Apply0().Functor0());
   return function(dictMonadRemoteData) {
     var fetchClones2 = fetchClones(dictMonadRemoteData);
@@ -29676,9 +29769,9 @@ var update = function(dictBind) {
     return function(dictMonadStore) {
       var get5 = get4(dictMonadStore);
       var put4 = put3(dictMonadStore);
-      return bind10(fetchClones2)(function(latestClones) {
-        return bind10(fetchViews2)(function(latestViews) {
-          return bind10(map24(splitDataSet)(get5))(function(saved) {
+      return bind11(fetchClones2)(function(latestClones) {
+        return bind11(fetchViews2)(function(latestViews) {
+          return bind11(map24(splitDataSet)(get5))(function(saved) {
             var updated = mergeDataSets({
               clones: unionByTimestamp2(latestClones)(saved.clones),
               views: unionByTimestamp2(latestViews)(saved.views)
@@ -29692,22 +29785,21 @@ var update = function(dictBind) {
 };
 
 // output/Main/index.js
-var bind9 = /* @__PURE__ */ bind(bindAff);
+var bind10 = /* @__PURE__ */ bind(bindAff);
 var bind1 = /* @__PURE__ */ bind(/* @__PURE__ */ bindExceptT(monadAff));
 var getEnvironment2 = /* @__PURE__ */ getEnvironment(/* @__PURE__ */ monadEffectExceptT(monadEffectAff))(/* @__PURE__ */ monadThrowExceptT(monadAff));
 var update2 = /* @__PURE__ */ update(bindUpdateM)(monadRemoteDataUpdateM)(monadStoreUpdateM);
-var applyFirst3 = /* @__PURE__ */ applyFirst(applyEffect);
 var liftEffect4 = /* @__PURE__ */ liftEffect(monadEffectAff);
-var main = /* @__PURE__ */ launchAff_(/* @__PURE__ */ bind9(loadFile)(function() {
-  return bind9(runExceptT(bind1(getEnvironment2)(runUpdateM(update2))))(function() {
-    var $13 = either(function() {
-      var $15 = applyFirst3(exit(1));
-      return function($16) {
-        return $15(error2(printError($16)));
+var main = /* @__PURE__ */ launchAff_(/* @__PURE__ */ bind10(loadFile)(function() {
+  return bind10(runExceptT(bind1(getEnvironment2)(runUpdateM(update2))))(function() {
+    var $14 = either(function(error3) {
+      return function __do() {
+        error2(printError(error3))();
+        return exit(1)();
       };
-    }())($$const(info("Traffic update successful")));
-    return function($14) {
-      return liftEffect4($13($14));
+    })($$const(info("Traffic update successful")));
+    return function($15) {
+      return liftEffect4($14($15));
     };
   }());
 }));
