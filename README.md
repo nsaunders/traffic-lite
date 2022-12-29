@@ -33,7 +33,7 @@ You'll need to add a step like this to your GitHub Actions workflow file.
 #### How it works
 When this step runs:
 * the file at the specified `path` will be read if it exists;
-* new data will be fetched from the Repository Traffic API endpoints for `clones` and `views`;
+* new data will be fetched from the Repository Traffic API endpoints for [clones](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-repository-clones) and [views](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-page-views);
 * the new data will be merged with any existing data; and
 * the result will be saved to the file at the specified `path`.
 
