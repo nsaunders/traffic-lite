@@ -12,6 +12,11 @@ Bugfixes:
 
 Other improvements:
 
+## [2.0.0] - 2023-01-29
+
+Breaking changes:
+- Default path is now _.github/traffic.json_ instead of _meta/traffic.json_.
+
 ## [1.0.1] - 2023-01-29
 
 Other improvements:
