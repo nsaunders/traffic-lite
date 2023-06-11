@@ -591,5 +591,29 @@
       "uniques": 2,
       "count": 2
     }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-06-04T00:00:00Z",
+    "clones": {
+      "uniques": 4,
+      "count": 6
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-06-05T00:00:00Z",
+    "clones": {
+      "uniques": 2,
+      "count": 2
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-06-06T00:00:00Z",
+    "clones": {
+      "uniques": 1,
+      "count": 1
+    }
   }
 ]
