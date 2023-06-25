@@ -631,5 +631,37 @@
       "uniques": 1,
       "count": 1
     }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-06-18T00:00:00Z",
+    "clones": {
+      "uniques": 3,
+      "count": 5
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-06-20T00:00:00Z",
+    "clones": {
+      "uniques": 1,
+      "count": 1
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-06-22T00:00:00Z",
+    "clones": {
+      "uniques": 1,
+      "count": 2
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-06-25T00:00:00Z",
+    "clones": {
+      "uniques": 1,
+      "count": 1
+    }
   }
 ]
