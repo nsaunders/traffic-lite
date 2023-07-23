@@ -703,5 +703,37 @@
       "uniques": 2,
       "count": 2
     }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-07-16T00:00:00Z",
+    "clones": {
+      "uniques": 3,
+      "count": 5
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-07-17T00:00:00Z",
+    "clones": {
+      "uniques": 1,
+      "count": 1
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-07-18T00:00:00Z",
+    "clones": {
+      "uniques": 1,
+      "count": 1
+    }
+  },
+  {
+    "views": null,
+    "timestamp": "2023-07-21T00:00:00Z",
+    "clones": {
+      "uniques": 1,
+      "count": 1
+    }
   }
 ]
